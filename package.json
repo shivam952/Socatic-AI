@@ -1,0 +1,73 @@
+{
+  "name": "socratic-ai",
+  "displayName": "Socratic AI",
+  "description": "AI that questions your thinking, not writes your code. Proactive blind spot detection for developers.",
+  "version": "0.1.0",
+  "publisher": "socratic-ai",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "socratic.setGoal",
+        "title": "Socratic: Set Project Goal"
+      },
+      {
+        "command": "socratic.showGoal",
+        "title": "Socratic: Show Current Goal"
+      },
+      {
+        "command": "socratic.analyzeNow",
+        "title": "Socratic: Analyze Current File"
+      },
+      {
+        "command": "socratic.setApiKey",
+        "title": "Socratic: Set API Key"
+      }
+    ],
+    "configuration": {
+      "title": "Socratic AI",
+      "properties": {
+        "socratic.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "OpenRouter API key",
+          "order": 1
+        },
+        "socratic.model": {
+          "type": "string",
+          "default": "anthropic/claude-sonnet-4",
+          "description": "LLM model to use via OpenRouter",
+          "order": 2
+        },
+        "socratic.debounceSeconds": {
+          "type": "number",
+          "default": 45,
+          "description": "Minimum seconds between proactive analyses",
+          "order": 3
+        },
+        "socratic.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable proactive analysis on file save",
+          "order": 4
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  }
+}
