@@ -1,0 +1,59 @@
+{
+  "domain": "solo-ai-fullstack-builder",
+  "version": "1.0",
+  "mistake_family": "premature_complexity",
+  "description": "Detects infrastructure, tooling, or architectural complexity added before the bottleneck is proven or the core loop is validated",
+  "warning_signs": [
+    "Adding a message queue (Kafka, RabbitMQ, Celery, BullMQ) before proving async load is a real bottleneck",
+    "Adding a caching layer (Redis, Memcached, CDN cache) before measuring what is slow",
+    "Adding microservices or service splits before single-node pain exists",
+    "Adding orchestration (Kubernetes, Docker Compose multi-service) before stable core logic",
+    "Adding a vector DB or embedding pipeline before validating retrieval quality",
+    "Adding auth/user systems before proving the core loop works end-to-end",
+    "Adding background workers before synchronous path is validated",
+    "Adding rate limiting / API gateway before load is measured",
+    "Adding observability stack (Prometheus, Grafana, datadog) before core loop is stable",
+    "Adding multi-region or HA infrastructure before users are acquired"
+  ],
+  "rubric": [
+    "Is there explicit evidence in project memory (goal, milestone, constraint, or decision) of a bottleneck that requires this component?",
+    "Is the current milestone blocked without this component? Would the milestone fail its success metric without it?",
+    "Does this component increase the operational or debugging surface significantly (adds ~2+ new moving parts)?",
+    "Is a simpler, local-first alternative available that could validate the same thing at this stage?",
+    "Does this change contradict a prior decision record or an explicit constraint in memory?"
+  ],
+  "trigger_keywords": {
+    "dependencies": [
+      "redis", "ioredis", "celery", "kafka", "kafkajs", "rabbitmq", "amqplib", "bullmq", "bull",
+      "memcached", "pinecone", "weaviate", "qdrant", "chroma", "milvus",
+      "prometheus", "datadog", "grafana", "jaeger", "oteljs", "opentelemetry",
+      "kubernetes", "k8s", "helm", "istio"
+    ],
+    "file_patterns": [
+      "docker-compose", "kubernetes", "k8s", ".helm", "celeryconfig",
+      "worker.py", "worker.ts", "queue.py", "queue.ts"
+    ],
+    "infra_directories": [
+      "services/", "workers/", "queues/", "infra/", "k8s/", "helm/"
+    ]
+  },
+  "good_warning_examples": [
+    "You added Redis caching, but your milestone is proving retrieval quality and no eval baseline exists yet. This adds infra before evidence. What bottleneck does this solve right now?",
+    "This introduces an async worker queue, but your goal states 'validate single-user flow first.' The synchronous path hasn't been proven yet — what failure mode does this prevent?",
+    "You added Kafka, but your constraint says 'no distributed systems before single-node pain.' What measured load metric justified introducing a message broker at this stage?",
+    "A vector DB was added before your RAG retrieval quality has been evaluated. Your current milestone is retrieval validation — adding Pinecone now makes evaluation harder, not easier."
+  ],
+  "bad_warning_examples": [
+    "Consider whether this is the best approach.",
+    "You might want to think about scalability.",
+    "This could be improved with better architecture.",
+    "Have you considered using a different pattern?",
+    "Redis is often overkill for small projects.",
+    "Make sure you need this before adding it."
+  ],
+  "threshold": {
+    "min_confidence_for_candidate": 0.7,
+    "min_confidence_for_level2": 0.75,
+    "rubric_hits_for_strong_signal": 3
+  }
+}

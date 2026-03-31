@@ -12,10 +12,10 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { ProjectGoal } from './goal';
+import { GoalMemory } from './goal';
 
 export interface AnalysisContext {
-    goal: ProjectGoal;
+    goal: GoalMemory;
     changedFile: {
         path: string;
         relativePath: string;
@@ -106,7 +106,7 @@ export function getKeyProjectFiles(rootPath: string): string {
  */
 export function buildContext(
     document: vscode.TextDocument,
-    goal: ProjectGoal,
+    goal: GoalMemory,
     recentWarnings: string[] = []
 ): AnalysisContext {
     const workspaceFolders = vscode.workspace.workspaceFolders;

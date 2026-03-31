@@ -7,8 +7,12 @@
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": ["Other"],
-  "activationEvents": ["onStartupFinished"],
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -21,12 +25,28 @@
         "title": "Socratic: Show Current Goal"
       },
       {
+        "command": "socratic.setMilestone",
+        "title": "Socratic: Update Milestone"
+      },
+      {
+        "command": "socratic.addConstraint",
+        "title": "Socratic: Add Constraint"
+      },
+      {
+        "command": "socratic.logDecision",
+        "title": "Socratic: Log a Decision"
+      },
+      {
         "command": "socratic.analyzeNow",
         "title": "Socratic: Analyze Current File"
       },
       {
         "command": "socratic.setApiKey",
         "title": "Socratic: Set API Key"
+      },
+      {
+        "command": "socratic.showWarningsLog",
+        "title": "Socratic: Show Warnings Log"
       }
     ],
     "configuration": {
@@ -69,5 +89,9 @@
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
     "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "@types/uuid": "^10.0.0",
+    "uuid": "^13.0.0"
   }
 }

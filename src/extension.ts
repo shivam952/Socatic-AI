@@ -1,32 +1,25 @@
 /**
- * Socratic AI — Extension Entry Point
- * 
+ * Socratic AI — Extension Entry Point (V1)
+ *
  * "AI that questions your thinking, not writes your code."
- * 
- * This extension proactively reviews your code changes against your
- * stated project goal and warns you about blind spots — before you
- * waste time going the wrong way.
- * 
- * 🏗️ ARCHITECTURE NOTE: Keep It Simple
- * 
- * v0 has no backend, no accounts, no analytics. Everything runs
- * locally in the extension. The LLM is called directly via HTTPS.
- * Project goals are stored in .socratic/goal.json per workspace.
- * 
- * The flow is:
- *   1. User sets a goal → stored in .socratic/goal.json
- *   2. User writes code normally
- *   3. On file save → debounced analysis triggers
- *   4. Context (goal + code + project structure) sent to LLM
- *   5. LLM returns ONE probing question or LGTM
- *   6. Notification shown (or silence if LGTM)
+ *
+ * V1 Flow:
+ *   1. User sets a goal (goal + milestone + metric + horizon)
+ *   2. User codes normally
+ *   3. On high-signal save events → two-stage pipeline fires
+ *   4. Detector proposes a candidate issue (or null)
+ *   5. Verifier audits: concrete? evidenced? worth interrupting?
+ *   6. Level 0 → silence | Level 1 → panel | Level 2 → notification
+ *   7. User feedback captured → regret tracking
  */
 import * as vscode from 'vscode';
-import { promptSetGoal, getGoal } from './goal';
-import { registerWatcher, triggerAnalysis } from './watcher';
+import { promptSetGoal, promptSetMilestone, getGoal } from './goal';
 import { initNotifications, initStatusBar } from './notifications';
-import { buildContext } from './context';
-import { analyzeCode } from './llm';
+import {
+    addConstraint,
+    addDecision,
+    getWarningsSummary,
+} from './memory';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Socratic AI activated');
@@ -36,7 +29,8 @@ export function activate(context: vscode.ExtensionContext) {
     const statusBar = initStatusBar();
     context.subscriptions.push(outputChannel, statusBar);
 
-    // Register commands
+    // ── Core Commands ─────────────────────────────────────────────────────────
+
     context.subscriptions.push(
         vscode.commands.registerCommand('socratic.setGoal', async () => {
             await promptSetGoal();
@@ -48,38 +42,13 @@ export function activate(context: vscode.ExtensionContext) {
             const goal = getGoal();
             if (goal) {
                 vscode.window.showInformationMessage(
-                    `🎯 Current goal: "${goal.goal}"${goal.context ? ` | Context: ${goal.context}` : ''}`
+                    `🎯 Goal: "${goal.goal}" | Milestone: "${goal.milestone}"`
                 );
             } else {
                 vscode.window.showInformationMessage(
                     'No goal set. Run "Socratic: Set Project Goal" to get started.'
                 );
             }
-        })
-    );
-
-    context.subscriptions.push(
-        vscode.commands.registerCommand('socratic.analyzeNow', async () => {
-            const editor = vscode.window.activeTextEditor;
-            if (!editor) {
-                vscode.window.showWarningMessage('Socratic: No active file to analyze.');
-                return;
-            }
-
-            const goal = getGoal();
-            if (!goal) {
-                const setNow = await vscode.window.showWarningMessage(
-                    'Socratic: No goal set. Set a goal first?',
-                    'Set Goal',
-                    'Cancel'
-                );
-                if (setNow === 'Set Goal') {
-                    await promptSetGoal();
-                }
-                return;
-            }
-
-            await triggerAnalysis(editor.document);
         })
     );
 
@@ -91,7 +60,6 @@ export function activate(context: vscode.ExtensionContext) {
                 password: true,
                 ignoreFocusOut: true,
             });
-
             if (key) {
                 await vscode.workspace.getConfiguration('socratic').update(
                     'apiKey',
@@ -103,19 +71,105 @@ export function activate(context: vscode.ExtensionContext) {
         })
     );
 
-    // Register the proactive file watcher
-    registerWatcher(context);
+    context.subscriptions.push(
+        vscode.commands.registerCommand('socratic.analyzeNow', async () => {
+            const goal = getGoal();
+            if (!goal) {
+                const setNow = await vscode.window.showWarningMessage(
+                    'Socratic: No goal set. Set a goal first?',
+                    'Set Goal', 'Cancel'
+                );
+                if (setNow === 'Set Goal') { await promptSetGoal(); }
+                return;
+            }
+            // Wired to trigger.ts + pipeline.ts in Step 5
+            vscode.window.showInformationMessage('Socratic: Manual analysis will be wired in Step 5.');
+        })
+    );
 
-    // Show welcome message if no goal set
+    // ── V1 New Commands ───────────────────────────────────────────────────────
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('socratic.setMilestone', async () => {
+            await promptSetMilestone();
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('socratic.addConstraint', async () => {
+            const goal = getGoal();
+            if (!goal) {
+                vscode.window.showWarningMessage('Socratic: Set a goal first.');
+                return;
+            }
+            const constraint = await vscode.window.showInputBox({
+                prompt: '🚧 Add a project constraint',
+                placeHolder: 'e.g., No cloud infra until retrieval is validated',
+                ignoreFocusOut: true,
+            });
+            if (constraint) {
+                addConstraint(constraint);
+                vscode.window.showInformationMessage(`✅ Constraint added — "${constraint}"`);
+            }
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('socratic.logDecision', async () => {
+            if (!getGoal()) {
+                vscode.window.showWarningMessage('Socratic: Set a goal first.');
+                return;
+            }
+            const decision = await vscode.window.showInputBox({
+                prompt: '📝 (1/3) What did you decide?',
+                placeHolder: 'e.g., Using local FAISS instead of Pinecone',
+                ignoreFocusOut: true,
+            });
+            if (!decision) { return; }
+
+            const rationale = await vscode.window.showInputBox({
+                prompt: '💡 (2/3) Why?',
+                placeHolder: 'e.g., Too early for managed vector DB before eval is stable',
+                ignoreFocusOut: true,
+            });
+            if (!rationale) { return; }
+
+            const rejected = await vscode.window.showInputBox({
+                prompt: '❌ (3/3) Rejected alternatives? (comma-separated, optional)',
+                placeHolder: 'e.g., Pinecone, Weaviate',
+                ignoreFocusOut: true,
+            });
+
+            addDecision({
+                decision,
+                rationale,
+                rejected_alternatives: rejected ? rejected.split(',').map(s => s.trim()) : [],
+                source: 'manual',
+            });
+            vscode.window.showInformationMessage(`📝 Decision logged — "${decision}"`);
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('socratic.showWarningsLog', () => {
+            outputChannel.appendLine(getWarningsSummary());
+            outputChannel.show(true);
+        })
+    );
+
+    // ── Startup banner ────────────────────────────────────────────────────────
+
     const goal = getGoal();
     if (!goal) {
         outputChannel.appendLine('═══════════════════════════════════════');
-        outputChannel.appendLine('  🧠 Socratic AI — Ready');
-        outputChannel.appendLine('  Run "Socratic: Set Project Goal" to start');
-        outputChannel.appendLine('  Run "Socratic: Set API Key" to configure');
+        outputChannel.appendLine('  🧠 Socratic AI V1 — Ready');
+        outputChannel.appendLine('  Step 1: Run "Socratic: Set Project Goal"');
+        outputChannel.appendLine('  Step 2: Run "Socratic: Set API Key"');
         outputChannel.appendLine('═══════════════════════════════════════');
     } else {
-        outputChannel.appendLine(`🎯 Socratic AI active — Goal: "${goal.goal}"`);
+        outputChannel.appendLine(`🎯 Socratic AI V1 active`);
+        outputChannel.appendLine(`   Goal: "${goal.goal}"`);
+        outputChannel.appendLine(`   Milestone: "${goal.milestone}"`);
     }
 }
 
