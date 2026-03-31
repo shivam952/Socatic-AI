@@ -20,6 +20,7 @@ import {
     addDecision,
     getWarningsSummary,
 } from './memory';
+import { initializeWorkspaceState } from './trigger';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Socratic AI activated');
@@ -28,6 +29,10 @@ export function activate(context: vscode.ExtensionContext) {
     const outputChannel = initNotifications();
     const statusBar = initStatusBar();
     context.subscriptions.push(outputChannel, statusBar);
+
+    // Initialize workspace state baseline (known files, known deps).
+    // Must run before the watcher is registered so new files are detected correctly.
+    initializeWorkspaceState(context.workspaceState);
 
     // ── Core Commands ─────────────────────────────────────────────────────────
 
