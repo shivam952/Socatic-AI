@@ -26,8 +26,8 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
-import * as vscode from 'vscode';
 import { GoalMemory, getSocraticDir, ensureSocraticDir } from './goal';
+import { logError } from './notifications';
 import { v4 as uuidv4 } from 'uuid';
 
 // ─── Schemas (mirrors V1_SPEC.md exactly) ─────────────────────────────────────
@@ -90,8 +90,7 @@ function readJson<T>(filename: string, defaultValue: T): T {
         const raw = fs.readFileSync(filePath, 'utf-8');
         return JSON.parse(raw) as T;
     } catch {
-        // Corrupted file → return empty default, log to output channel
-        console.error(`[Socratic] Failed to parse ${filename}, using empty default.`);
+        logError(`Failed to parse ${filename}, using empty default.`);
         return defaultValue;
     }
 }

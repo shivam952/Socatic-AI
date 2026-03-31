@@ -19,6 +19,21 @@ export function initNotifications(): vscode.OutputChannel {
     return outputChannel;
 }
 
+/**
+ * Route internal errors to the output channel — not to console.error.
+ * Per error handling policy: all failures are silent to the user,
+ * logged to the output channel only, never surfaced as notifications.
+ */
+export function logError(message: string): void {
+    const timestamp = new Date().toLocaleTimeString();
+    if (outputChannel) {
+        outputChannel.appendLine(`[${timestamp}] ⚠️ Socratic (internal): ${message}`);
+    }
+    // Fallback if called before initNotifications (e.g. during early startup)
+    // eslint-disable-next-line no-console
+    console.error(`[Socratic] ${message}`);
+}
+
 export async function showAnalysisResult(
     result: SocraticResponse,
     fileName: string
