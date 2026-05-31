@@ -124,7 +124,7 @@ function callOpenRouter(
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`,
-                'HTTP-Referer': 'https://github.com/shivam-ssg/socratic-ai',
+                'HTTP-Referer': 'https://github.com/shivam952/Socatic-AI',
                 'X-Title': 'Socratic AI GitHub Action',
                 'Content-Length': Buffer.byteLength(body),
             },

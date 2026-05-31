@@ -25,7 +25,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: shivam-ssg/socratic-ai@main
+      - uses: shivam952/Socatic-AI@main
         with:
           api-key: ${{ secrets.SOCRATIC_API_KEY }}
         env:
@@ -107,7 +107,7 @@ Commit these files, add the workflow, and every PR gets reviewed against them.
 ## Block merges on constraint violations
 
 ```yaml
-- uses: shivam-ssg/socratic-ai@main
+- uses: shivam952/Socatic-AI@main
   with:
     api-key: ${{ secrets.SOCRATIC_API_KEY }}
     fail-on-critical: 'true'

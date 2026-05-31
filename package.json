@@ -8,11 +8,11 @@
   "icon": "icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/shivam-ssg/socratic-ai"
+    "url": "https://github.com/shivam952/Socatic-AI"
   },
-  "homepage": "https://github.com/shivam-ssg/socratic-ai#readme",
+  "homepage": "https://github.com/shivam952/Socatic-AI#readme",
   "bugs": {
-    "url": "https://github.com/shivam-ssg/socratic-ai/issues"
+    "url": "https://github.com/shivam952/Socatic-AI/issues"
   },
   "keywords": [
     "ai",

@@ -142,7 +142,7 @@ function formatPRComment(result, goal, constraints) {
     }
 
     lines.push('---');
-    lines.push('*Powered by [Socratic AI](https://github.com/shivam-ssg/socratic-ai) — AI that questions your thinking, not writes your code.*');
+    lines.push('*Powered by [Socratic AI](https://github.com/shivam952/Socatic-AI) — AI that questions your thinking, not writes your code.*');
 
     return lines.join('\n');
 }
