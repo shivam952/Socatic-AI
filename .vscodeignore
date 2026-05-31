@@ -1,0 +1,17 @@
+.vscode
+.vscode-test
+src
+.gitignore
+.git
+.claude
+node_modules
+*.ts
+!out/**/*.js
+tsconfig.json
+CLAUDE.md
+EXPERT_LAYER.md
+INTERRUPT_POLICY.md
+PHASE2.md
+V1_SPEC.md
+VISION.md
+.socratic

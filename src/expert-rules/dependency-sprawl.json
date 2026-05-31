@@ -1,0 +1,39 @@
+{
+  "domain": "dependency_management",
+  "version": "1.0",
+  "mistake_family": "dependency_sprawl",
+  "description": "Accumulating dependencies faster than the project can justify them. Each dependency is a liability — maintenance burden, security surface, and complexity before core value is proven.",
+  "warning_signs": [
+    "Adding heavy ML framework dependencies before simpler alternatives are ruled out",
+    "Adding multiple libraries that solve the same problem",
+    "Crossing 20+ dependencies before a working prototype exists",
+    "Adding a full web framework when a simpler HTTP server would do",
+    "Pulling in an entire SDK when only one API endpoint is needed",
+    "Adding heavy data science stack for a task that doesn't require it"
+  ],
+  "rubric": [
+    "Is this dependency necessary for the current milestone, or is it anticipatory?",
+    "Could a lighter-weight alternative or stdlib accomplish the same thing at this stage?",
+    "Does this pull in a large transitive dependency tree that complicates the project?",
+    "Are there already 2+ dependencies solving overlapping problems?",
+    "Is this a convenience dependency when the functionality is achievable without it?"
+  ],
+  "trigger_keywords": {
+    "dependencies": ["torch", "tensorflow", "keras", "xgboost", "lightgbm", "spark", "dask", "ray", "polars", "pyarrow", "plotly", "bokeh", "streamlit", "gradio"],
+    "file_patterns": [],
+    "infra_directories": []
+  },
+  "good_warning_examples": [
+    "You added PyTorch to requirements.txt. Your current milestone is proving retrieval quality using existing embeddings. PyTorch is ~500MB — is it needed specifically for this milestone?",
+    "requirements.txt now has 25 packages and the core retrieval loop hasn't been validated yet. Consider trimming before the milestone is proven."
+  ],
+  "bad_warning_examples": [
+    "You have a lot of dependencies.",
+    "numpy is heavy."
+  ],
+  "threshold": {
+    "min_confidence_for_candidate": 5,
+    "min_confidence_for_level2": 8,
+    "rubric_hits_for_strong_signal": 2
+  }
+}

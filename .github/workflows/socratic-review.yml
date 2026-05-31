@@ -1,0 +1,30 @@
+name: Socratic AI — PR Review
+
+# This is the workflow file you put in OTHER repos that want to use Socratic.
+# Copy this to .github/workflows/socratic-review.yml in any project.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  socratic-review:
+    name: Goal-Aware PR Review
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write  # needed to post PR comments
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Socratic Review
+        uses: shivam-ssg/socratic-ai@main
+        with:
+          api-key: ${{ secrets.SOCRATIC_API_KEY }}
+          model: 'anthropic/claude-sonnet-4'
+          # Set to 'true' to block merges with critical issues or constraint violations
+          fail-on-critical: 'false'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

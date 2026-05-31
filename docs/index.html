@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Socratic AI — PR reviews that know what you're building</title>
+  <meta name="description" content="Goal-aware PR reviews that catch scope creep and constraint violations before they merge. Add one GitHub Action, define your goal, get a senior engineer's perspective on every PR." />
+  <style>
+    :root {
+      --bg: #0d0d0f;
+      --bg2: #141418;
+      --bg3: #1c1c22;
+      --border: #2a2a35;
+      --text: #e8e8f0;
+      --text-muted: #888899;
+      --accent: #7c6af7;
+      --accent-glow: rgba(124, 106, 247, 0.15);
+      --green: #4ade80;
+      --red: #f87171;
+      --yellow: #fbbf24;
+      --orange: #fb923c;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ─── NAV ─── */
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 48px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(13, 13, 15, 0.92);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+
+    .logo {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+    .logo-icon { font-size: 22px; }
+
+    .nav-links { display: flex; gap: 32px; align-items: center; }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+    .btn-primary:hover { background: #6b5ae8; transform: translateY(-1px); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ─── HERO ─── */
+    .hero {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 96px 48px 72px;
+      text-align: center;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 99px;
+      background: var(--accent-glow);
+      border: 1px solid rgba(124, 106, 247, 0.3);
+      font-size: 12px;
+      color: #a89ef8;
+      margin-bottom: 28px;
+    }
+    .badge-dot {
+      width: 6px; height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    h1 {
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 24px;
+    }
+    h1 em {
+      font-style: normal;
+      color: var(--accent);
+    }
+
+    .hero-sub {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 580px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+    .hero-sub strong { color: var(--text); }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .hero-note {
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .hero-note a { color: var(--text-muted); }
+
+    /* ─── SECTION ─── */
+    section {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 80px 48px;
+    }
+    section + section { padding-top: 0; }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      font-size: clamp(26px, 4vw, 38px);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 16px;
+    }
+
+    .section-sub {
+      font-size: 17px;
+      color: var(--text-muted);
+      max-width: 560px;
+      margin-bottom: 48px;
+      line-height: 1.7;
+    }
+
+    /* ─── PR COMMENT DEMO ─── */
+    .pr-demo {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .pr-demo-header {
+      padding: 14px 20px;
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+    }
+    .avatar {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--accent), #a78bfa);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .commenter-name { font-weight: 600; }
+    .commenter-tag {
+      padding: 2px 8px;
+      background: rgba(124, 106, 247, 0.15);
+      border: 1px solid rgba(124, 106, 247, 0.3);
+      border-radius: 4px;
+      font-size: 11px;
+      color: #a89ef8;
+    }
+    .comment-time { color: var(--text-muted); margin-left: auto; }
+
+    .pr-demo-body { padding: 24px 24px 20px; }
+
+    .comment-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .verdict-bad { color: var(--red); }
+    .verdict-good { color: var(--green); }
+
+    .comment-summary {
+      padding: 12px 16px;
+      background: var(--bg3);
+      border-left: 3px solid var(--border);
+      border-radius: 0 6px 6px 0;
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      font-style: italic;
+    }
+
+    .milestone-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      padding: 8px 12px;
+      background: var(--bg3);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .finding {
+      margin-bottom: 16px;
+    }
+    .finding-header {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .severity-crit { color: var(--red); }
+    .severity-high { color: var(--orange); }
+    .severity-med { color: var(--yellow); }
+    .finding-body { font-size: 13px; padding-left: 4px; }
+    .finding-body li { padding: 3px 0; color: var(--text-muted); }
+    .finding-body li strong { color: var(--text); }
+    .finding-code {
+      margin-top: 8px;
+      padding: 10px 14px;
+      background: #0a0a0c;
+      border-radius: 6px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      color: #c8c8d8;
+      overflow-x: auto;
+    }
+
+    .constraint-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      background: rgba(248, 113, 113, 0.1);
+      border: 1px solid rgba(248, 113, 113, 0.25);
+      border-radius: 4px;
+      font-size: 12px;
+      color: #fca5a5;
+    }
+
+    .comment-footer {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .comment-footer a { color: var(--accent); text-decoration: none; }
+
+    /* ─── HOW IT WORKS ─── */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+      margin-top: 48px;
+    }
+    .step {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px 24px;
+      position: relative;
+    }
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px; height: 32px;
+      background: var(--accent-glow);
+      border: 1px solid rgba(124, 106, 247, 0.3);
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+    .step h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .step p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+
+    /* ─── CODE BLOCK ─── */
+    .code-block {
+      background: #0a0a0c;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 40px;
+    }
+    .code-header {
+      padding: 12px 20px;
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .code-dots { display: flex; gap: 6px; }
+    .code-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+    .code-dot.red { background: #ff5f57; }
+    .code-dot.yellow { background: #febc2e; }
+    .code-dot.green { background: #28c840; }
+    .code-body {
+      padding: 24px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 13px;
+      line-height: 1.8;
+      color: #c8d0e8;
+      overflow-x: auto;
+    }
+    .c-comment { color: #5a6680; }
+    .c-key { color: #7c6af7; }
+    .c-str { color: #a8e8b0; }
+    .c-val { color: #f8c580; }
+
+    /* ─── PROBLEM / SOLUTION ─── */
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 48px;
+    }
+    @media (max-width: 640px) { .compare { grid-template-columns: 1fr; } }
+    .compare-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+    }
+    .compare-card.good { border-color: rgba(74, 222, 128, 0.2); }
+    .compare-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 16px; }
+    .compare-card ul { list-style: none; }
+    .compare-card ul li {
+      font-size: 14px;
+      color: var(--text-muted);
+      padding: 6px 0;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .compare-card.good ul li { color: var(--text); }
+    .compare-card ul li .icon { flex-shrink: 0; margin-top: 1px; }
+
+    /* ─── PRICING ─── */
+    .pricing {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-top: 48px;
+    }
+    .plan {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 36px 32px;
+    }
+    .plan.featured {
+      border-color: var(--accent);
+      background: linear-gradient(135deg, rgba(124, 106, 247, 0.08) 0%, var(--bg2) 60%);
+      position: relative;
+    }
+    .plan-featured-tag {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 3px 14px;
+      background: var(--accent);
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 700;
+      color: white;
+      white-space: nowrap;
+    }
+    .plan-name { font-size: 14px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; }
+    .plan-price {
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: -2px;
+      margin-bottom: 4px;
+    }
+    .plan-price span { font-size: 18px; font-weight: 500; color: var(--text-muted); }
+    .plan-period { font-size: 13px; color: var(--text-muted); margin-bottom: 28px; }
+    .plan-features { list-style: none; margin-bottom: 32px; }
+    .plan-features li {
+      font-size: 14px;
+      padding: 7px 0;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .plan-features li:last-child { border-bottom: none; }
+    .plan-features li .check { color: var(--green); }
+
+    /* ─── FOOTER ─── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 48px;
+      text-align: center;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    footer a { color: var(--text-muted); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+
+    @media (max-width: 640px) {
+      nav { padding: 16px 20px; }
+      .nav-links { display: none; }
+      .hero, section { padding-left: 20px; padding-right: 20px; }
+      footer { padding: 32px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="logo">
+    <span class="logo-icon">🧠</span>
+    Socratic AI
+  </a>
+  <div class="nav-links">
+    <a href="#how-it-works">How it works</a>
+    <a href="#pricing">Pricing</a>
+    <a href="https://github.com/shivam-ssg/socratic-ai" target="_blank">GitHub</a>
+    <a href="https://github.com/shivam-ssg/socratic-ai" target="_blank" class="btn btn-ghost">Get started →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="badge">
+    <span class="badge-dot"></span>
+    GitHub Action · Open Source · 2-minute setup
+  </div>
+
+  <h1>The PR reviewer that<br>never forgets <em>what you're building</em></h1>
+
+  <p class="hero-sub">
+    Your existing PR reviews check if the code works.<br>
+    Socratic checks if the code is <strong>what you said you'd build</strong> —<br>
+    catching scope creep and constraint violations before they merge.
+  </p>
+
+  <div class="hero-actions">
+    <a href="https://github.com/shivam-ssg/socratic-ai" target="_blank" class="btn btn-primary">
+      ⚡ Add to your repo
+    </a>
+    <a href="#demo" class="btn btn-ghost">
+      See a real review ↓
+    </a>
+  </div>
+  <p class="hero-note">Free for open source · <a href="#pricing">$12/month</a> for private repos</p>
+</div>
+
+<!-- PROBLEM vs SOLUTION -->
+<section>
+  <div class="section-label">The problem</div>
+  <h2>Every review catches bugs.<br>Nobody catches drift.</h2>
+  <p class="section-sub">
+    Code review tools are excellent at what they do. But none of them know what you promised yourself you'd build.
+  </p>
+
+  <div class="compare">
+    <div class="compare-card">
+      <h3>❌ What you have today</h3>
+      <ul>
+        <li><span class="icon">–</span> Reviewers check correctness, not goal alignment</li>
+        <li><span class="icon">–</span> Scope creep merges silently, sprint after sprint</li>
+        <li><span class="icon">–</span> Constraints you set for yourself are forgotten by week 2</li>
+        <li><span class="icon">–</span> You ship milestone 3 infrastructure while milestone 1 isn't proven</li>
+        <li><span class="icon">–</span> Nobody asks "should we even build this right now?"</li>
+      </ul>
+    </div>
+    <div class="compare-card good">
+      <h3>✅ With Socratic</h3>
+      <ul>
+        <li><span class="icon check">✓</span> Every PR checked against your stated goal and milestone</li>
+        <li><span class="icon check">✓</span> Constraint violations flagged before they merge</li>
+        <li><span class="icon check">✓</span> Scope creep named and questioned, not just approved</li>
+        <li><span class="icon check">✓</span> Your future self's constraints enforced by your past self's judgment</li>
+        <li><span class="icon check">✓</span> One additional voice in your PR: "is this what we said we'd build?"</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- PR DEMO -->
+<section id="demo">
+  <div class="section-label">Live example</div>
+  <h2>What lands on your PR</h2>
+  <p class="section-sub">
+    Socratic posts a structured comment on every PR. Grounded in your actual goal and constraints — not generic advice.
+  </p>
+
+  <div class="pr-demo">
+    <div class="pr-demo-header">
+      <div class="avatar">🧠</div>
+      <span class="commenter-name">socratic-ai</span>
+      <span class="commenter-tag">bot</span>
+      <span class="comment-time">just now</span>
+    </div>
+    <div class="pr-demo-body">
+      <div class="comment-title">🧠 Socratic AI Review — <span class="verdict-bad">🔴 Needs Discussion</span></div>
+
+      <div class="comment-summary">
+        This PR adds Redis caching, Celery task queue, and Flower monitoring. Your current milestone is validating document retrieval quality — none of this infrastructure is needed to reach &gt;80% accuracy on test queries.
+      </div>
+
+      <div class="milestone-box">
+        📍 Reviewing against: <strong>Complete document ingestion pipeline with &gt;80% accuracy</strong>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header"><span class="severity-crit">🔴 Critical —</span> ⛔ Constraint Violation</div>
+        <ul class="finding-body">
+          <li>⚠️ <strong>Redis and Celery added before retrieval quality is validated</strong></li>
+          <li>✦ Your constraint: <span class="constraint-pill">No Redis/Celery until >80% retrieval accuracy achieved</span></li>
+        </ul>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header"><span class="severity-crit">🔴 Critical —</span> 📈 Scope Creep</div>
+        <ul class="finding-body">
+          <li>⚠️ <strong>Background task queue adds 3 new services before core pipeline is proven</strong></li>
+          <li>✦ Prove the synchronous pipeline works first. Async infrastructure is a milestone 2 concern.</li>
+        </ul>
+        <div class="finding-code">
+requirements.txt  +  redis==4.6.0, celery, flower, kafka-python<br>
+constraint:           "No async infra until synchronous pipeline validated"
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header"><span class="severity-high">🟠 High —</span> 🏗 Architecture</div>
+        <ul class="finding-body">
+          <li>⚠️ <strong>build_app() called on every request — rebuilds the entire graph per call</strong></li>
+          <li>✦ Build the LangGraph app once at module load and reuse the compiled instance.</li>
+        </ul>
+        <div class="finding-code">
+def chat(question, session_id="default"):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;app = build_app()  # ← every request reloads YAML, LLM, reranker, index<br>
+&nbsp;&nbsp;&nbsp;&nbsp;...
+        </div>
+      </div>
+
+      <div class="comment-footer">
+        <details>
+          <summary style="cursor:pointer; font-size:13px; color: #888899;">🚧 2 active constraints</summary>
+          <ul style="margin-top:10px; list-style:none;">
+            <li style="padding:4px 0; font-size:13px;">• No Redis/Celery until &gt;80% retrieval accuracy achieved</li>
+            <li style="padding:4px 0; font-size:13px;">• No web search fallback before local retrieval validated</li>
+          </ul>
+        </details>
+        <br>Powered by <a href="https://github.com/shivam-ssg/socratic-ai">Socratic AI</a> — AI that questions your thinking, not writes your code.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works">
+  <div class="section-label">How it works</div>
+  <h2>Set it up in 2 minutes,<br>get value on the first PR</h2>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Define your goal</h3>
+      <p>Commit a <code>.socratic/goal.json</code> with your current goal, milestone, and success metric. Add constraints that your future self must not violate.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Add the workflow</h3>
+      <p>Copy one 12-line YAML file to <code>.github/workflows/</code>. Add your OpenRouter API key as a secret. Done.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Every PR gets reviewed</h3>
+      <p>Socratic posts a structured comment on every PR. Findings are grounded in your actual goal — not generic best practices.</p>
+    </div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <div class="code-dots">
+        <div class="code-dot red"></div>
+        <div class="code-dot yellow"></div>
+        <div class="code-dot green"></div>
+      </div>
+      <span>.github/workflows/socratic-review.yml</span>
+      <span></span>
+    </div>
+    <div class="code-body">
+<span class="c-key">name</span>: <span class="c-str">Socratic Review</span><br>
+<span class="c-key">on</span>:<br>
+&nbsp;&nbsp;<span class="c-key">pull_request</span>:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-key">types</span>: [<span class="c-str">opened</span>, <span class="c-str">synchronize</span>, <span class="c-str">reopened</span>]<br>
+<br>
+<span class="c-key">jobs</span>:<br>
+&nbsp;&nbsp;<span class="c-key">socratic-review</span>:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-key">runs-on</span>: <span class="c-str">ubuntu-latest</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-key">permissions</span>:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-key">pull-requests</span>: <span class="c-val">write</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-key">contents</span>: <span class="c-val">read</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-key">steps</span>:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="c-key">uses</span>: <span class="c-str">actions/checkout@v4</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="c-key">uses</span>: <span class="c-str">shivam-ssg/socratic-ai@main</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-key">with</span>:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-key">api-key</span>: <span class="c-val">${{ secrets.SOCRATIC_API_KEY }}</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-key">env</span>:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c-key">GITHUB_TOKEN</span>: <span class="c-val">${{ secrets.GITHUB_TOKEN }}</span>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="section-label">Pricing</div>
+  <h2>Start free.<br>Pay when it saves you time.</h2>
+  <p class="section-sub">No seat licenses. No per-user pricing. One flat rate per organization.</p>
+
+  <div class="pricing">
+    <div class="plan">
+      <div class="plan-name">Open Source</div>
+      <div class="plan-price">$0</div>
+      <div class="plan-period">forever, for public repos</div>
+      <ul class="plan-features">
+        <li><span class="check">✓</span> Unlimited public repos</li>
+        <li><span class="check">✓</span> Unlimited PR reviews</li>
+        <li><span class="check">✓</span> Goal & constraint checking</li>
+        <li><span class="check">✓</span> VS Code extension</li>
+        <li><span class="check">✓</span> Community support</li>
+      </ul>
+      <a href="https://github.com/shivam-ssg/socratic-ai" target="_blank" class="btn btn-ghost" style="width:100%; justify-content:center;">
+        Get started free →
+      </a>
+    </div>
+
+    <div class="plan featured">
+      <div class="plan-featured-tag">Most popular</div>
+      <div class="plan-name">Team</div>
+      <div class="plan-price">$12 <span>/ mo</span></div>
+      <div class="plan-period">per organization, unlimited repos</div>
+      <ul class="plan-features">
+        <li><span class="check">✓</span> Unlimited private repos</li>
+        <li><span class="check">✓</span> Unlimited PR reviews</li>
+        <li><span class="check">✓</span> Goal & constraint checking</li>
+        <li><span class="check">✓</span> VS Code extension for whole team</li>
+        <li><span class="check">✓</span> <strong>Block merges on constraint violations</strong></li>
+        <li><span class="check">✓</span> Priority email support</li>
+      </ul>
+      <a href="mailto:shiva.ssg7@gmail.com?subject=Socratic AI Team" class="btn btn-primary" style="width:100%; justify-content:center;">
+        Start 14-day free trial →
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div style="margin-bottom:20px;">
+    <span style="font-size:24px;">🧠</span>
+    <div style="font-weight:700; font-size:16px; margin-top:6px;">Socratic AI</div>
+  </div>
+  <div style="display:flex; gap:32px; justify-content:center; margin-bottom:24px; flex-wrap:wrap;">
+    <a href="https://github.com/shivam-ssg/socratic-ai">GitHub</a>
+    <a href="https://github.com/shivam-ssg/socratic-ai#readme">Docs</a>
+    <a href="mailto:shiva.ssg7@gmail.com">Contact</a>
+    <a href="https://github.com/shivam-ssg/socratic-ai/blob/main/LICENSE.txt">MIT License</a>
+  </div>
+  <div>Built by <a href="https://github.com/shivam-ssg">@shivam-ssg</a> · No backend · No tracking · Your data stays in your repo</div>
+</footer>
+
+</body>
+</html>

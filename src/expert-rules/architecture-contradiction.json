@@ -1,0 +1,39 @@
+{
+  "domain": "architectural_consistency",
+  "version": "1.0",
+  "mistake_family": "architecture_contradiction",
+  "description": "Making a technical choice that directly contradicts a previously recorded architectural decision. The danger is the inconsistency — two conflicting approaches coexisting in the same codebase.",
+  "warning_signs": [
+    "Adding a cloud AI service when the decision was local-first LLM",
+    "Adding a managed database when the decision was local storage only",
+    "Adding a second ORM or database driver when one was already chosen",
+    "Introducing a new language runtime when the stack was already decided",
+    "Adding a cloud storage service when local file storage was the stated approach",
+    "Adding synchronous patterns after an async architecture was decided"
+  ],
+  "rubric": [
+    "Does this import or dependency directly contradict a decision in the project's decision log?",
+    "Was this library or service explicitly considered and rejected in favour of what's already in use?",
+    "Does this introduce two competing approaches to the same problem in the same codebase?",
+    "Is the developer reversing a previously stated architectural direction without recording the change?",
+    "Would adding this require undoing or duplicating existing work?"
+  ],
+  "trigger_keywords": {
+    "dependencies": ["openai", "anthropic", "cohere", "mistralai", "boto3", "google-cloud", "azure", "firebase-admin", "supabase", "prisma", "sqlalchemy", "tortoise-orm", "peewee"],
+    "file_patterns": ["graphql", "grpc"],
+    "infra_directories": ["cloud/", "aws/", "gcp/", "azure/"]
+  },
+  "good_warning_examples": [
+    "You added 'openai' to requirements.txt. Your decision log shows you chose local Ollama for LLM inference. If you're using openai only for embeddings, log that decision explicitly to prevent future confusion.",
+    "You imported SQLAlchemy, but your decision log shows you chose raw SQLite to keep dependencies minimal. Two ORM approaches in the same codebase creates maintenance overhead."
+  ],
+  "bad_warning_examples": [
+    "You added a cloud package and you have a local setup.",
+    "openai contradicts Ollama somehow."
+  ],
+  "threshold": {
+    "min_confidence_for_candidate": 5,
+    "min_confidence_for_level2": 8,
+    "rubric_hits_for_strong_signal": 2
+  }
+}

@@ -4,10 +4,32 @@
   "description": "AI that questions your thinking, not writes your code. Proactive blind spot detection for developers.",
   "version": "0.1.0",
   "publisher": "socratic-ai",
+  "license": "MIT",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shivam-ssg/socratic-ai"
+  },
+  "homepage": "https://github.com/shivam-ssg/socratic-ai#readme",
+  "bugs": {
+    "url": "https://github.com/shivam-ssg/socratic-ai/issues"
+  },
+  "keywords": [
+    "ai",
+    "code-review",
+    "proactive",
+    "socratic",
+    "architecture",
+    "complexity",
+    "guardrails",
+    "llm",
+    "openrouter"
+  ],
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": [
+    "Linters",
     "Other"
   ],
   "activationEvents": [
@@ -38,7 +60,7 @@
       },
       {
         "command": "socratic.analyzeNow",
-        "title": "Socratic: Analyze Current File"
+        "title": "Socratic: Analyze Now"
       },
       {
         "command": "socratic.setApiKey",
@@ -47,6 +69,22 @@
       {
         "command": "socratic.showWarningsLog",
         "title": "Socratic: Show Warnings Log"
+      },
+      {
+        "command": "socratic.installGitHooks",
+        "title": "Socratic: Install Git Hooks"
+      },
+      {
+        "command": "socratic.deepReview",
+        "title": "Socratic: Deep Review"
+      },
+      {
+        "command": "socratic.preShipReview",
+        "title": "Socratic: Pre-Ship Review"
+      },
+      {
+        "command": "socratic.showHistory",
+        "title": "Socratic: Show Health Trajectory"
       }
     ],
     "configuration": {
@@ -66,8 +104,8 @@
         },
         "socratic.debounceSeconds": {
           "type": "number",
-          "default": 45,
-          "description": "Minimum seconds between proactive analyses",
+          "default": 15,
+          "description": "Seconds of silence after last save before analysis runs",
           "order": 3
         },
         "socratic.enabled": {
@@ -83,15 +121,12 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "lint": "eslint src --ext ts"
+    "lint": "eslint src --ext ts",
+    "package": "vsce package"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "@types/uuid": "^10.0.0",
     "@types/vscode": "^1.85.0",
     "typescript": "^5.3.0"
-  },
-  "dependencies": {
-    "uuid": "^13.0.0"
   }
 }

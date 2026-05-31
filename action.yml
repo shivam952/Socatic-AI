@@ -1,0 +1,24 @@
+name: 'Socratic AI'
+description: 'AI that questions your thinking, not writes your code. Goal-aware PR review that checks your code against what you said you were building.'
+author: 'socratic-ai'
+
+branding:
+  icon: 'eye'
+  color: 'purple'
+
+inputs:
+  api-key:
+    description: 'OpenRouter API key (store as a GitHub secret)'
+    required: true
+  model:
+    description: 'LLM model via OpenRouter (default: anthropic/claude-sonnet-4)'
+    required: false
+    default: 'anthropic/claude-sonnet-4'
+  fail-on-critical:
+    description: 'Fail the CI check if critical issues or constraint violations are found (default: false — informational only)'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'node20'
+  main: 'action/entrypoint.js'

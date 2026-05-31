@@ -26,9 +26,9 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import { GoalMemory, getSocraticDir, ensureSocraticDir } from './goal';
 import { logError } from './notifications';
-import { v4 as uuidv4 } from 'uuid';
 
 // ─── Schemas (mirrors V1_SPEC.md exactly) ─────────────────────────────────────
 
@@ -69,7 +69,7 @@ export interface ProjectMemory {
     goal: GoalMemory;
     constraints: ConstraintMemory;
     decisions: DecisionMemory;
-    recent_warnings: string[]; // last 5 message strings (for novelty check)
+    recent_warnings: RecentWarning[]; // last 5 within time window (for dedup + novelty)
 }
 
 // ─── File path helpers ────────────────────────────────────────────────────────
@@ -132,7 +132,7 @@ export function addDecision(record: Omit<DecisionRecord, 'id' | 'timestamp'>): D
     const current = getDecisions();
     const newRecord: DecisionRecord = {
         ...record,
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
     };
     current.decisions.push(newRecord);
@@ -151,23 +151,61 @@ export function getRecentDecisions(n: number = 5): DecisionRecord[] {
 
 // ─── Warnings Log ─────────────────────────────────────────────────────────────
 
+// Hard cap on retained warnings. Keeps the file bounded at ~200KB worst-case
+// and prevents the per-pipeline readFileSync from growing without limit.
+const MAX_WARNINGS_RETAINED = 500;
+
+// In-process lock: appendWarning and updateWarningOutcome both do
+// read→modify→write. Without a lock, two concurrent async callers can race
+// and the second write silently overwrites the first.
+// This simple boolean is enough because VS Code's extension host is
+// single-threaded — only one microtask runs at a time. If we're mid-write
+// we queue the next operation rather than letting it overwrite.
+let warningsWritePending = false;
+const warningsWriteQueue: (() => void)[] = [];
+
+function flushWarningsQueue(): void {
+    const next = warningsWriteQueue.shift();
+    if (next) {
+        next();
+    } else {
+        warningsWritePending = false;
+    }
+}
+
+function serializedWarningsWrite(fn: () => void): void {
+    if (warningsWritePending) {
+        warningsWriteQueue.push(() => { fn(); flushWarningsQueue(); });
+    } else {
+        warningsWritePending = true;
+        fn();
+        flushWarningsQueue();
+    }
+}
+
 export function getWarningsLog(): WarningsLog {
     return readJson<WarningsLog>('warnings-log.json', { warnings: [] });
 }
 
 export function saveWarningsLog(log: WarningsLog): void {
+    // Prune to MAX_WARNINGS_RETAINED before every write — keeps file bounded.
+    if (log.warnings.length > MAX_WARNINGS_RETAINED) {
+        log.warnings = log.warnings.slice(-MAX_WARNINGS_RETAINED);
+    }
     writeJson('warnings-log.json', log);
 }
 
 export function appendWarning(record: Omit<WarningRecord, 'id' | 'timestamp'>): string {
-    const log = getWarningsLog();
-    const id = uuidv4();
-    log.warnings.push({
-        ...record,
-        id,
-        timestamp: new Date().toISOString(),
+    const id = crypto.randomUUID();
+    serializedWarningsWrite(() => {
+        const log = getWarningsLog();
+        log.warnings.push({
+            ...record,
+            id,
+            timestamp: new Date().toISOString(),
+        });
+        saveWarningsLog(log);
     });
-    saveWarningsLog(log);
     return id;
 }
 
@@ -175,19 +213,33 @@ export function updateWarningOutcome(
     warningId: string,
     outcome: WarningRecord['outcome']
 ): void {
-    const log = getWarningsLog();
-    const idx = log.warnings.findIndex(w => w.id === warningId);
-    if (idx !== -1) {
-        log.warnings[idx].outcome = outcome;
-        saveWarningsLog(log);
-    }
+    serializedWarningsWrite(() => {
+        const log = getWarningsLog();
+        const idx = log.warnings.findIndex(w => w.id === warningId);
+        if (idx !== -1) {
+            log.warnings[idx].outcome = outcome;
+            saveWarningsLog(log);
+        }
+    });
 }
 
-export function getRecentWarningMessages(n: number = 5): string[] {
+// Dedup protects against rapid re-fires in the debounce window, not session-wide.
+// 5 minutes is long enough to catch the debounce overlap, short enough to let
+// genuinely new warnings about different files through.
+const RECENT_WARNINGS_WINDOW_MS = 5 * 60 * 1000;
+
+export interface RecentWarning {
+    message: string;
+    file_path: string;
+}
+
+export function getRecentWarnings(n: number = 5): RecentWarning[] {
     const log = getWarningsLog();
+    const cutoff = Date.now() - RECENT_WARNINGS_WINDOW_MS;
     return log.warnings
+        .filter(w => new Date(w.timestamp).getTime() > cutoff)
         .slice(-n)
-        .map(w => w.message);
+        .map(w => ({ message: w.message, file_path: w.file_path }));
 }
 
 // ─── Full memory loader (single call for pipeline) ────────────────────────────
@@ -197,7 +249,7 @@ export function loadMemory(goal: GoalMemory): ProjectMemory {
         goal,
         constraints: getConstraints(),
         decisions: { decisions: getRecentDecisions(5) },
-        recent_warnings: getRecentWarningMessages(5),
+        recent_warnings: getRecentWarnings(5),
     };
 }
 

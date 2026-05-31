@@ -1,0 +1,38 @@
+{
+  "domain": "scope_management",
+  "version": "1.0",
+  "mistake_family": "scope_creep",
+  "description": "Adding features, abstractions, or infrastructure that belong to future milestones rather than the current one.",
+  "warning_signs": [
+    "Creating service directories (workers/, services/, agents/) when milestone is pre-validation",
+    "Adding scheduling or orchestration before the core loop is validated",
+    "Building middleware or abstraction layers before the underlying feature works",
+    "Creating CLI tools or admin panels before the core product works",
+    "Adding monitoring or observability tooling before there is anything to monitor"
+  ],
+  "rubric": [
+    "Does this new file or directory directly contribute to the stated milestone, or is it prep for a later one?",
+    "Could the current milestone be completed without this addition?",
+    "Is this solving a problem that actually exists now, or anticipating one that might exist later?",
+    "Would a senior engineer reviewing this PR ask 'why is this in scope for this milestone?'",
+    "Is this abstraction needed now or is it a nice-to-have for a future version?"
+  ],
+  "trigger_keywords": {
+    "dependencies": ["celery", "dramatiq", "rq", "apscheduler", "airflow", "prefect", "dagster", "temporal"],
+    "file_patterns": ["worker", "scheduler", "cron", "orchestrat", "middleware", "admin", "dashboard"],
+    "infra_directories": ["workers/", "schedulers/", "jobs/", "tasks/", "crons/", "orchestration/", "admin/"]
+  },
+  "good_warning_examples": [
+    "You're creating a workers/ directory, but your milestone is proving retrieval quality on 50 documents. Async task processing is a scaling concern — your milestone doesn't require it yet.",
+    "You added Airflow to requirements.txt. Your current milestone is validating the core pipeline on local data. Pipeline orchestration belongs to a later milestone."
+  ],
+  "bad_warning_examples": [
+    "You added a new file. This might be scope creep.",
+    "Creating new directories is suspicious."
+  ],
+  "threshold": {
+    "min_confidence_for_candidate": 5,
+    "min_confidence_for_level2": 8,
+    "rubric_hits_for_strong_signal": 2
+  }
+}

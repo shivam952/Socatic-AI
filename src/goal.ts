@@ -12,6 +12,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { setupConstraintsFromGoal } from './constraints';
 
 // V1 Goal schema — all fields required except context
 export interface GoalMemory {
@@ -58,6 +59,16 @@ export function getGoal(): GoalMemory | undefined {
         const raw = fs.readFileSync(goalPath, 'utf-8');
         return JSON.parse(raw) as GoalMemory;
     } catch {
+        // 7.6: Silent failure here means the developer has no idea why Socratic
+        // stopped working. Show a one-time actionable notification.
+        vscode.window.showErrorMessage(
+            'Socratic: goal.json appears corrupted. Run "Socratic: Set Project Goal" to fix.',
+            'Set Goal'
+        ).then(action => {
+            if (action === 'Set Goal') {
+                vscode.commands.executeCommand('socratic.setGoal');
+            }
+        });
         return undefined;
     }
 }
@@ -126,6 +137,17 @@ export async function promptSetGoal(): Promise<GoalMemory | undefined> {
     vscode.window.showInformationMessage(
         `🎯 Socratic: Goal set — "${goal}" | Milestone: "${milestone}"`
     );
+
+    // Track 1.1: Auto-suggest constraints from goal — removes cold-start friction.
+    // Reads API key from config. If not set yet, skip silently (user can add
+    // constraints manually later or they'll be prompted on next goal set).
+    const config = vscode.workspace.getConfiguration('socratic');
+    const apiKey = config.get<string>('apiKey', '');
+    const model = config.get<string>('model', 'anthropic/claude-sonnet-4');
+    if (apiKey) {
+        await setupConstraintsFromGoal(goalMemory, apiKey, model);
+    }
+
     return goalMemory;
 }
 
